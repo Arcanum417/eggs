@@ -1,0 +1,82 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2023-10-04T20:24:19+02:00",
+    "name": "Rimworld - Together",
+    "author": "lubos.len@gmail.com",
+    "description": "https:\/\/github.com\/Nova-Atomic\/Rimworld-Together",
+    "features": null,
+    "docker_images": {
+        "Dotnet 7": "ghcr.io\/parkervcp\/yolks:dotnet_7"
+    },
+    "file_denylist": [],
+    "startup": ".\/GameServer",
+    "config": {
+        "files": "{\r\n    \"Core\/ServerConfig.json\": {\r\n        \"parser\": \"json\",\r\n        \"find\": {\r\n            \"IP\": \"0.0.0.0\",\r\n            \"Port\": \"{{server.build.default.port}}\",\r\n            \"MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\"\r\n            \r\n        }\r\n    },\r\n\t\"Core\/DifficultyValues.json\": {\r\n        \"parser\": \"json\",\r\n        \"find\": {\r\n            \"UseCustomDifficulty\": \"{{server.build.env.USE_CUSTOM_DIFF}}\"\r\n            \r\n        }\r\n    },\r\n\t\"Core\/Whitelist.json\": {\r\n        \"parser\": \"json\",\r\n        \"find\": {\r\n            \"UseWhitelist\": \"{{server.build.env.WHITELIST}}\"\r\n            \r\n        }\r\n    },\r\n\t\"Core\/ServerValues.json\": {\r\n        \"parser\": \"json\",\r\n        \"find\": {\r\n            \"AllowCustomScenarios\": \"{{server.build.env.CUSTOM_SCEN}}\"\r\n            \r\n        }\r\n    }\r\n}",
+        "startup": "{\r\n    \"done\": \" Server Launched\"\r\n}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!\/bin\/bash\r\n\r\n#Create the server directory\r\nmkdir -p \/mnt\/server\r\ncd \/mnt\/server\r\n\r\napt update\r\napt -y install curl jq unzip git\r\n\r\n\r\n#Check for latest release & download URLs\r\nLATEST_JSON=$(curl --silent \"https:\/\/api.github.com\/repos\/Nova-Atomic\/Rimworld-Together\/releases\/latest\")\r\nRELEASES=$(curl --silent \"https:\/\/api.github.com\/repos\/Nova-Atomic\/Rimworld-Together\/releases\")\r\nARCH=$([[ \"$(uname -m)\" == \"x86_64\" ]] && echo \"LinuxX64\" || echo \"LinuxARMX64\")\r\n\r\nif [ -z \"${VERSION}\" ] || [ \"${VERSION}\" == \"latest\" ]; then\r\n    DOWNLOAD_URL=$(echo ${LATEST_JSON} | jq .assets | jq -r .[].browser_download_url | grep -i ${ARCH} | head -1)\r\nelse\r\n    VERSION_CHECK=$(echo ${RELEASES} | jq -r --arg VERSION \"${VERSION}\" '.[] | select(.tag_name==$VERSION) | .tag_name')\r\n    if [ \"${VERSION}\" == \"${VERSION_CHECK}\" ]; then\r\n        DOWNLOAD_URL=$(echo ${RELEASES} | jq -r --arg VERSION \"${VERSION}\" '.[] | select(.tag_name==$VERSION) | .assets[].browser_download_url' | grep -i ${ARCH} | head -1)\r\n    else\r\n        echo -e \"defaulting to latest release\"\r\n        DOWNLOAD_URL=$(echo ${LATEST_JSON} | jq .assets | jq -r .[].browser_download_url | grep -i ${ARCH}| head -1)\r\n    fi\r\nfi\r\n\r\n\r\n#Download the Rimworld Open World server\r\necho -e \"Running curl -sSL ${DOWNLOAD_URL} -o ${ARCH}.zip\"\r\ncurl -sSL ${DOWNLOAD_URL} -o ${ARCH}.zip\r\necho -e \"Unzipping ${ARCH}.zip\"\r\nunzip -o ${ARCH}.zip\r\n#mv * \/mnt\/server\r\nchmod +x \"GameServer\"\r\nrm -rf ${ARCH}.zip ${ARCH}\/\r\n\r\n# Start the executable in the background\r\n.\/GameServer &\r\n\r\n# Get the PID of the last background process\r\nPID=$!\r\n\r\n# Sleep\/wait for some time\r\nsleep 5\r\n\r\n# Send a command or input to the executable\r\necho \"quit\" > \/proc\/$PID\/fd\/0\r\n\r\n## install end\r\necho \"-----------------------------------------\"\r\necho \"Installation completed...\"\r\necho \"-----------------------------------------\"",
+            "container": "mcr.microsoft.com\/dotnet\/runtime:7.0.11-bullseye-slim-amd64",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Ringworld-Together Version",
+            "description": "",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:8",
+            "field_type": "text"
+        },
+        {
+            "name": "Max Players",
+            "description": "sets the maximum number of players allowed to connect at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "10",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|int",
+            "field_type": "text"
+        },
+        {
+            "name": "Use Custom Difficulty",
+            "description": "forces all players to use the difficulty setting set in the \"DifficultyValues.json\"",
+            "env_variable": "USE_CUSTOM_DIFF",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Use Whitelist",
+            "description": "allows only the usernames listed in the \"Whitelist.json\" file to join the server.",
+            "env_variable": "WHITELIST",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Allow Custom Scenarios",
+            "description": "allows people to create custom scenarios when creating their save on the server.",
+            "env_variable": "CUSTOM_SCEN",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}
